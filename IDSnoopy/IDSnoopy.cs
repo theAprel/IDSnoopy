@@ -46,7 +46,7 @@ namespace IDSnoopy
             // A text block using the HS font
             _info = new HearthstoneTextBlock();
             _info.Text = "";
-            _info.FontSize = 18;
+            _info.FontSize = 14;
 
             // Add the text block as a child of the border element
             blockBorder.Child = _info;
@@ -54,7 +54,7 @@ namespace IDSnoopy
             // Get the HDT Overlay canvas object
             var canvas = Hearthstone_Deck_Tracker.API.Core.OverlayCanvas;
             // Get canvas centre
-            var fromTop = canvas.Height / 2;
+            var fromTop = canvas.Height / 2 + 50;
             var fromLeft = canvas.Width / 2;
             // Give the text block its position within the canvas, roughly in the center
             Canvas.SetTop(blockBorder, fromTop);
