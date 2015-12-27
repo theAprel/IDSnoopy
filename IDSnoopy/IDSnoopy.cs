@@ -71,13 +71,12 @@ namespace IDSnoopy
         {
             _info.Text = "";
 
-            //Epix says "ZONE_POSITION changes happen after draws, meaning drawn card will not appear."
-            List<Entity> orderedHand = Entities.OrderBy(e => e.GetTag(GAME_TAG.ZONE_POSITION)).ToList();
+            List<CardEntity> opponentsHand = game.Opponent.Hand;
 
-            foreach (var e in orderedHand)
+            foreach (var cardEntity in opponentsHand)
             {
-                if (e.IsInHand && e.GetTag(GAME_TAG.CONTROLLER) == game.OpponentEntity.GetTag(GAME_TAG.CONTROLLER))
-                    _info.Text += e.Id + ": " + e.Card + "\n";
+                var e = cardEntity.Entity;
+                _info.Text += e.Id + ": " + e.Card + "\n";
             }
         }
     }
