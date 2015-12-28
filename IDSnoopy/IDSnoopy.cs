@@ -17,6 +17,7 @@ namespace IDSnoopy
     class IDSnoopy
     {
         private static HearthstoneTextBlock _info;
+        private static Dictionary<int, Entity> knownEntities = new Dictionary<int, Entity>();
         private static IGame game
         {
             get
@@ -63,7 +64,57 @@ namespace IDSnoopy
             canvas.Children.Add(blockBorder);
 
             // Register methods to be called when GameEvents occur
+            
+            GameEvents.OnGameStart.Add(newGame);
+            GameEvents.OnOpponentCreateInDeck.Add(scanEntities);
+            GameEvents.OnOpponentCreateInPlay.Add(scanEntities);
+            GameEvents.OnOpponentDeckDiscard.Add(scanEntities);
+            GameEvents.OnOpponentDeckToPlay.Add(scanEntities);
+            GameEvents.OnOpponentDraw.Add(scanEntities);
+            GameEvents.OnOpponentFatigue.Add(scanEntities);
+            GameEvents.OnOpponentGet.Add(scanEntities);
+            GameEvents.OnOpponentHandDiscard.Add(scanEntities);
+            GameEvents.OnOpponentJoustReveal.Add(scanEntities);
+            GameEvents.OnOpponentPlay.Add(scanEntities);
+            GameEvents.OnOpponentPlayToDeck.Add(scanEntities);
+            GameEvents.OnOpponentPlayToHand.Add(scanEntities);
+            GameEvents.OnTurnStart.Add(scanEntities);
+
             GameEvents.OnOpponentDraw.Add(HandInfo);
+
+        }
+
+        public static void newGame()
+        {
+            knownEntities = new Dictionary<int, Entity>();
+            _info.FontSize = 14;
+        }
+
+        public static void scanEntities(Card c)
+        {
+            scanEntities();
+        }
+
+        public static void scanEntities(int i)
+        {
+            scanEntities();
+        }
+
+        public static void scanEntities(ActivePlayer ap)
+        {
+            scanEntities();
+        }
+
+        public static void scanEntities()
+        {
+            foreach (var e in Entities)
+            {
+                if (!e.Card.Name.Equals("UNKNOWN", StringComparison.InvariantCultureIgnoreCase) && !knownEntities.ContainsKey(e.Id))
+                {
+                    knownEntities.Add(e.Id, e);
+                    Logger.WriteLine("Identified a card! " + e.Id + "=" + e);
+                }
+            }
         }
 
         // Track opponent's hand
@@ -71,12 +122,18 @@ namespace IDSnoopy
         {
             _info.Text = "";
 
-            List<CardEntity> opponentsHand = game.Opponent.Hand;
+            List<CardEntity> opponentsHand = new List<CardEntity>(game.Opponent.Hand);
+            opponentsHand.Reverse();    // reverse to last drawn last
 
             foreach (var cardEntity in opponentsHand)
             {
                 var e = cardEntity.Entity;
-                _info.Text += e.Id + ": " + e.Card + "\n";
+                Entity value;
+                if (knownEntities.TryGetValue(e.Id, out value))
+                {
+                    _info.FontSize = 20;  // flash, change color, do something better
+                }
+                _info.Text += e.Id + ": " + (value != null ? value.Card.Name : "") + "\n";
             }
         }
     }
