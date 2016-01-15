@@ -136,12 +136,12 @@ namespace IDSnoopy
             foreach (var cardEntity in opponentsHand)
             {
                 var e = cardEntity.Entity;
-                string value;
+                string value = "";
                 if (knownEntities.TryGetValue(e.Id, out value))
                 {
                     _info.FontSize = 20;  // flash, change color, do something better
                 }
-                _info.Text += e.Id + ": " + (value != null ? value : "") + "\n";
+                _info.Text += e.Id + ": " + value + "\n";
             }
         }
 
