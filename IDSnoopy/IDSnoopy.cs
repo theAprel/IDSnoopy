@@ -10,6 +10,8 @@ using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
 using Hearthstone_Deck_Tracker.Hearthstone;
 using Hearthstone_Deck_Tracker.Hearthstone.Entities;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace IDSnoopy
 {
@@ -17,7 +19,12 @@ namespace IDSnoopy
     class IDSnoopy
     {
         private static HearthstoneTextBlock _info;
-        private static Dictionary<int, Entity> knownEntities = new Dictionary<int, Entity>();
+        private static Dictionary<int, string> knownEntities = new Dictionary<int, string>();
+        // Rafaam fields
+        private static bool rafaamLogFlag = false;
+        private static int rafaamLogLineCount = 0;
+        private static int[] artifactIds;
+
         private static IGame game
         {
             get
@@ -82,11 +89,13 @@ namespace IDSnoopy
 
             GameEvents.OnOpponentDraw.Add(HandInfo);
 
+            LogEvents.OnPowerLogLine.Add(TrackRafaam);
+
         }
 
         public static void newGame()
         {
-            knownEntities = new Dictionary<int, Entity>();
+            knownEntities = new Dictionary<int, string>();
             _info.FontSize = 14;
         }
 
@@ -111,13 +120,14 @@ namespace IDSnoopy
             {
                 if (!e.Card.Name.Equals("UNKNOWN", StringComparison.InvariantCultureIgnoreCase) && !knownEntities.ContainsKey(e.Id))
                 {
-                    knownEntities.Add(e.Id, e);
+                    knownEntities.Add(e.Id, e.Card.Name);
                     Logger.WriteLine("Identified a card! " + e.Id + "=" + e);
                 }
             }
         }
 
         // Track opponent's hand
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void HandInfo()
         {
             _info.Text = "";
@@ -128,13 +138,63 @@ namespace IDSnoopy
             foreach (var cardEntity in opponentsHand)
             {
                 var e = cardEntity.Entity;
-                Entity value;
+                string value;
                 if (knownEntities.TryGetValue(e.Id, out value))
                 {
                     _info.FontSize = 20;  // flash, change color, do something better
                 }
-                _info.Text += e.Id + ": " + (value != null ? value.Card.Name : "") + "\n";
+                _info.Text += e.Id + ": " + (value != null ? value : "") + "\n";
             }
+        }
+
+        public static void TrackRafaam(string logLine)
+        {
+            if(logLine.Contains("Source=[name=Arch-Thief Rafaam"))  // identify target log line and prepare
+            {
+                rafaamLogFlag = true;
+                rafaamLogLineCount = 0;
+                artifactIds = new int[3];
+                return;
+            }
+            if(rafaamLogFlag)  // the next 3 lines in the log are the artifact cards
+            {
+                int id = Int32.Parse(GetValueInLogEntry(logLine, "id"));
+                artifactIds[rafaamLogLineCount++] = id;
+                if(rafaamLogLineCount == 3)  // all ids have been identified; process and clean up
+                {
+                    Array.Sort(artifactIds);
+                    knownEntities.Add(artifactIds[0], "Lantern of Power");
+                    knownEntities.Add(artifactIds[1], "Mirror of Doom");
+                    knownEntities.Add(artifactIds[2], "Timepiece of Horror");
+
+                    rafaamLogFlag = false;
+                    // update hand info by polling instead of bothering with the logs
+                    new Thread(() =>
+                    {
+                        Thread.CurrentThread.IsBackground = true;
+                        for(int i = 0; i < 60; i++)
+                        {
+                            HandInfo();
+                            Thread.Sleep(3000);
+                        }
+                    }).Start();
+                }
+            }
+        }
+
+        // maybe refactor this into a library. Copied and pasted from OptionsDisplay
+        private static String GetValueInLogEntry(String entry, String key)
+        {
+            int keyIndex = entry.IndexOf(key);
+            String afterEqualsSign = entry.Substring(keyIndex + key.Length + 1); // +1 is the equals sign
+            if (!afterEqualsSign.Contains("="))
+            {
+                return afterEqualsSign; // no more key-value pairs on log line; return this last value
+            }
+            int nextEquals = afterEqualsSign.IndexOf("=");
+            String valueAndNextKey = afterEqualsSign.Substring(0, nextEquals);
+            int lastSpaceIndex = valueAndNextKey.LastIndexOf(" ");
+            return valueAndNextKey.Substring(0, lastSpaceIndex);
         }
     }
 }
