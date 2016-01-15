@@ -10,8 +10,6 @@ using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
 using Hearthstone_Deck_Tracker.Hearthstone;
 using Hearthstone_Deck_Tracker.Hearthstone.Entities;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace IDSnoopy
 {
@@ -86,6 +84,7 @@ namespace IDSnoopy
             GameEvents.OnOpponentPlayToDeck.Add(scanEntities);
             GameEvents.OnOpponentPlayToHand.Add(scanEntities);
             GameEvents.OnTurnStart.Add(scanEntities);
+            GameEvents.OnTurnStart.Add(HandInfo);
 
             GameEvents.OnOpponentDraw.Add(HandInfo);
 
@@ -127,7 +126,6 @@ namespace IDSnoopy
         }
 
         // Track opponent's hand
-        [MethodImpl(MethodImplOptions.Synchronized)]
         public static void HandInfo()
         {
             _info.Text = "";
@@ -145,6 +143,12 @@ namespace IDSnoopy
                 }
                 _info.Text += e.Id + ": " + (value != null ? value : "") + "\n";
             }
+        }
+
+        public static void HandInfo(ActivePlayer ap)
+        {
+            if (ap == ActivePlayer.Player)  // Only necessary on player's turn (for Rafaam artifact) because on opponent's, check is after draw
+                HandInfo();
         }
 
         public static void TrackRafaam(string logLine)
@@ -168,16 +172,6 @@ namespace IDSnoopy
                     knownEntities.Add(artifactIds[2], "Timepiece of Horror");
 
                     rafaamLogFlag = false;
-                    // update hand info by polling instead of bothering with the logs
-                    new Thread(() =>
-                    {
-                        Thread.CurrentThread.IsBackground = true;
-                        for(int i = 0; i < 60; i++)
-                        {
-                            HandInfo();
-                            Thread.Sleep(3000);
-                        }
-                    }).Start();
                 }
             }
         }
