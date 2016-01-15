@@ -17,12 +17,7 @@ namespace IDSnoopy
     class IDSnoopy
     {
         private static HearthstoneTextBlock _info;
-        private static Dictionary<int, string> knownEntities = new Dictionary<int, string>();
-        // Rafaam fields
-        private static bool rafaamLogFlag = false;
-        private static int rafaamLogLineCount = 0;
-        private static int[] artifactIds;
-
+        private static Dictionary<int, Entity> knownEntities = new Dictionary<int, Entity>();
         private static IGame game
         {
             get
@@ -84,17 +79,14 @@ namespace IDSnoopy
             GameEvents.OnOpponentPlayToDeck.Add(scanEntities);
             GameEvents.OnOpponentPlayToHand.Add(scanEntities);
             GameEvents.OnTurnStart.Add(scanEntities);
-            GameEvents.OnTurnStart.Add(HandInfo);
 
             GameEvents.OnOpponentDraw.Add(HandInfo);
-
-            LogEvents.OnPowerLogLine.Add(TrackRafaam);
 
         }
 
         public static void newGame()
         {
-            knownEntities = new Dictionary<int, string>();
+            knownEntities = new Dictionary<int, Entity>();
             _info.FontSize = 14;
         }
 
@@ -119,7 +111,7 @@ namespace IDSnoopy
             {
                 if (!e.Card.Name.Equals("UNKNOWN", StringComparison.InvariantCultureIgnoreCase) && !knownEntities.ContainsKey(e.Id))
                 {
-                    knownEntities.Add(e.Id, e.Card.Name);
+                    knownEntities.Add(e.Id, e);
                     Logger.WriteLine("Identified a card! " + e.Id + "=" + e);
                 }
             }
@@ -136,59 +128,13 @@ namespace IDSnoopy
             foreach (var cardEntity in opponentsHand)
             {
                 var e = cardEntity.Entity;
-                string value = "";
+                Entity value;
                 if (knownEntities.TryGetValue(e.Id, out value))
                 {
                     _info.FontSize = 20;  // flash, change color, do something better
                 }
-                _info.Text += e.Id + ": " + value + "\n";
+                _info.Text += e.Id + ": " + (value != null ? value.Card.Name : "") + "\n";
             }
-        }
-
-        public static void HandInfo(ActivePlayer ap)
-        {
-            if (ap == ActivePlayer.Player)  // Only necessary on player's turn (for Rafaam artifact) because on opponent's, check is after draw
-                HandInfo();
-        }
-
-        public static void TrackRafaam(string logLine)
-        {
-            if(logLine.Contains("Source=[name=Arch-Thief Rafaam"))  // identify target log line and prepare
-            {
-                rafaamLogFlag = true;
-                rafaamLogLineCount = 0;
-                artifactIds = new int[3];
-                return;
-            }
-            if(rafaamLogFlag)  // the next 3 lines in the log are the artifact cards
-            {
-                int id = Int32.Parse(GetValueInLogEntry(logLine, "id"));
-                artifactIds[rafaamLogLineCount++] = id;
-                if(rafaamLogLineCount == 3)  // all ids have been identified; process and clean up
-                {
-                    Array.Sort(artifactIds);
-                    knownEntities.Add(artifactIds[0], "Lantern of Power");
-                    knownEntities.Add(artifactIds[1], "Mirror of Doom");
-                    knownEntities.Add(artifactIds[2], "Timepiece of Horror");
-
-                    rafaamLogFlag = false;
-                }
-            }
-        }
-
-        // maybe refactor this into a library. Copied and pasted from OptionsDisplay
-        private static String GetValueInLogEntry(String entry, String key)
-        {
-            int keyIndex = entry.IndexOf(key);
-            String afterEqualsSign = entry.Substring(keyIndex + key.Length + 1); // +1 is the equals sign
-            if (!afterEqualsSign.Contains("="))
-            {
-                return afterEqualsSign; // no more key-value pairs on log line; return this last value
-            }
-            int nextEquals = afterEqualsSign.IndexOf("=");
-            String valueAndNextKey = afterEqualsSign.Substring(0, nextEquals);
-            int lastSpaceIndex = valueAndNextKey.LastIndexOf(" ");
-            return valueAndNextKey.Substring(0, lastSpaceIndex);
         }
     }
 }
