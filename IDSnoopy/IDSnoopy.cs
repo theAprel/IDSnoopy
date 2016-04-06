@@ -83,6 +83,7 @@ namespace IDSnoopy
             GameEvents.OnTurnStart.Add(scanEntities);
 
             GameEvents.OnOpponentDraw.Add(HandInfo);
+            GameEvents.OnOpponentPlay.Add(HandInfo);
 
         }
 
@@ -117,6 +118,11 @@ namespace IDSnoopy
                     Log.WriteLine("Identified a card! " + e.Id + "=" + e, LogType.Info);
                 }
             }
+        }
+
+        public static void HandInfo(Card c)
+        {
+            HandInfo();
         }
 
         // Track opponent's hand
