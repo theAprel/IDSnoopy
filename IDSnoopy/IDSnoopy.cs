@@ -10,6 +10,7 @@ using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
 using Hearthstone_Deck_Tracker.Hearthstone;
 using Hearthstone_Deck_Tracker.Hearthstone.Entities;
+using Hearthstone_Deck_Tracker.Utility.Logging;
 
 namespace IDSnoopy
 {
@@ -46,6 +47,7 @@ namespace IDSnoopy
 
             // A text block using the HS font
             _info = new HearthstoneTextBlock();
+            _info.TextWrapping = TextWrapping.WrapWithOverflow;
             _info.Text = "";
             _info.FontSize = 14;
 
@@ -112,7 +114,7 @@ namespace IDSnoopy
                 if (!e.Card.Name.Equals("UNKNOWN", StringComparison.InvariantCultureIgnoreCase) && !knownEntities.ContainsKey(e.Id))
                 {
                     knownEntities.Add(e.Id, e);
-                    Logger.WriteLine("Identified a card! " + e.Id + "=" + e);
+                    Log.WriteLine("Identified a card! " + e.Id + "=" + e, LogType.Info);
                 }
             }
         }
@@ -122,12 +124,11 @@ namespace IDSnoopy
         {
             _info.Text = "";
 
-            List<CardEntity> opponentsHand = new List<CardEntity>(game.Opponent.Hand);
-            opponentsHand.Reverse();    // reverse to last drawn last
+            List<Entity> opponentsHand = new List<Entity>(game.Opponent.Hand);
 
             foreach (var cardEntity in opponentsHand)
             {
-                var e = cardEntity.Entity;
+                var e = cardEntity;
                 Entity value;
                 if (knownEntities.TryGetValue(e.Id, out value))
                 {
