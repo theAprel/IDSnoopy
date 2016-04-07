@@ -138,7 +138,8 @@ namespace IDSnoopy
                 Entity value;
                 if (knownEntities.TryGetValue(e.Id, out value))
                 {
-                    _info.FontSize = 20;  // flash, change color, do something better
+                    if (e.CardId != HearthDb.CardIds.NonCollectible.Neutral.TheCoin)
+                        _info.FontSize = 20;  // flash, change color, do something better
                 }
                 _info.Text += e.Id + ": " + (value != null ? value.Card.Name : "") + "\n";
             }
